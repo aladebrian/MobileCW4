@@ -38,8 +38,9 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
   String currentView = "month";
   int currentDay = -1;
   Draggable draggableListTile(index) {
-    return Draggable<Material>(
+    return Draggable<Plan>(
       feedback: unorderedListTilePlan(index),
+      data: plans[index],
       child: GestureDetector(
         onDoubleTap: () => changeName(index),
         child: SizedBox(
@@ -102,7 +103,13 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
   void seeDay(index) {
     setState(() {
       currentView = 'day';
-      currentDay = index;
+      currentDay = index - 6;
+    });
+  }
+
+  void back() {
+    setState(() {
+      currentView = 'month';
     });
   }
 
@@ -112,6 +119,7 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
       appBar: AppBar(title: Text(widget.title)),
       body: Row(
         children: [
+          // Text Fields
           SizedBox(
             width: 300,
             child: Column(
@@ -135,6 +143,7 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
               ],
             ),
           ),
+          // Unordered Plans
           SizedBox(
             width: 300,
             child: Column(
@@ -146,14 +155,15 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
                 Expanded(
                   child: ListView.builder(
                     itemCount: plans.length,
-                    itemBuilder: (context, index) {
-                      return draggableListTile(index);
+                    itemBuilder: (context, unorderedPlanIndex) {
+                      return draggableListTile(unorderedPlanIndex);
                     },
                   ),
                 ),
               ],
             ),
           ),
+          // Calendar
           if (currentView == 'month')
             SizedBox(
               width: 300,
@@ -162,33 +172,44 @@ class _PlanManagerScreenState extends State<PlanManagerScreen> {
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 7,
                 ),
-                itemBuilder: (context, index) {
-                  if (index < 7) {
-                    return Text(days[index]);
+                itemBuilder: (context, dayIndex) {
+                  if (dayIndex < 7) {
+                    return Text(days[dayIndex]);
                   } else {
                     return TextButton(
-                      onPressed: () => seeDay(index),
-                      child: Text("${index - 6}"),
+                      onPressed: () => seeDay(dayIndex),
+                      child: Text("${dayIndex - 6}"),
                     );
                   }
                 },
               ),
-            ),
+            ), 
+          // Ordered Plans fron day
           if (currentView == 'day')
-            SizedBox(
+            Container(
               width: 300,
+              color: Colors.orange,
               child: Column(
                 children: [
-                  TextButton(
-                    onPressed: addUnorderedPlan,
-                    child: Text("Add Plan"),
-                  ),
+                  Text("Day: $currentDay"),
+                  TextButton(onPressed: back, child: Text("Back")),
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: orderedPlans[currentDay]!.length,
-                      itemBuilder: (context, index) {
-                        return unorderedListTilePlan(index);
+                    child: DragTarget<Plan>(
+                      builder: (context, candidateDAta, rejectedData) {
+                        return ListView.builder(
+                          itemCount:
+                              orderedPlans[currentDay]?.length == null
+                                  ? 0
+                                  : orderedPlans[currentDay]!.length,
+                          itemBuilder: (context, orderedPlanIndex) {
+                            return orderedListTilePlan(orderedPlanIndex);
+                          },
+                        );
                       },
+
+                      onWillAcceptWithDetails: (details) => true,
+                      onAcceptWithDetails:
+                          (details) => addOrderedPlan(currentDay, details.data),
                     ),
                   ),
                 ],
